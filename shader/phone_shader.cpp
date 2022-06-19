@@ -65,14 +65,22 @@ vec3 PhongShader::fragment_shader(PixelAttri& pixelAttri)
 
 	vec3 kd = payload.model->diffuse(uv); //基础颜色，通过贴图方式
 
-	float sp;
-	/*if (payload.model->specularmap)
+	/*float sp;
+	if (payload.model->specularmap)
 		sp = payload.model->specular(uv);
 	else sp = 0.3;
 
 	vec3 ks(sp, sp, sp);  */
 
-	float p = 150.0;
+	vec3 ks(0, 0, 0);
+	if (payload.model->specularmap)
+		ks = payload.model->specular(uv);
+
+	vec3 emit(0., 0., 0.);
+	if (payload.model->emision_map)
+		emit = payload.model->emission(uv);
+
+	float p = 60.0;
 	vec3 viewPos = payload.camera->eye;
 	//vec3 lightPos(1.f, 2.f, 5.f);
 
@@ -94,15 +102,15 @@ vec3 PhongShader::fragment_shader(PixelAttri& pixelAttri)
 	vec3 diffuse = cwise_product(kd, light_diffuse_intensity) * std::max(0.0f, costheta);
 
 	costheta = dot(Halfv, normal);
-	//vec3 specular = cwise_product(ks, light_specular_intensity) * std::pow(std::max(0.0f, costheta), p);
+	vec3 specular = cwise_product(ks, light_specular_intensity) * std::pow(std::max(0.0f, costheta), p);
 
 	float shadow = ShadowCalculation(worldpos, lightSpaceMatrix, sbuffer, viewSpaceMatrix, zNear, zFar);
 
 
 
 	vec3 result_color(0, 0, 0);
-	result_color = ambient + (1 - shadow) * (diffuse);
-	return result_color * 255.f;
+	result_color = ambient + (1 - shadow) * (diffuse + emit);
+	return result_color * 255.0f;
 
 }
 

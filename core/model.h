@@ -56,7 +56,7 @@ public:
 	float metalness(vec2 uv);
 	vec3 emission(vec2 uv);
 	float occlusion(vec2 uv);
-	float specular(vec2 uv);
+	vec3 specular(vec2 uv);
 
 	std::vector<int> face(int idx);
 };

@@ -301,11 +301,18 @@ float Model::metalness(vec2 uv)
 	return metalnessmap->get(uv0, uv1)[0] / 255.f;
 }
 
-float Model::specular(vec2 uv)
+vec3 Model::specular(vec2 uv)
 {
+	uv[0] = fmod(uv[0], 1);
+	uv[1] = fmod(uv[1], 1);
 	int uv0 = uv[0] * specularmap->get_width();
+
 	int uv1 = uv[1] * specularmap->get_height();
-	return specularmap->get(uv0, uv1)[0] / 1.f;
+	TGAColor c = specularmap->get(uv0, uv1);
+	vec3 res;
+	for (int i = 0; i < 3; i++)
+		res[2 - i] = static_cast<float>(c[i]) / 255.f;
+	return res;
 }
 
 float Model::occlusion(vec2 uv)

@@ -43,7 +43,7 @@ vec3 lambertShader::fragment_shader(PixelAttri& pixelAttri)
 
 	float costheta = (std::max)(0.0f, (float)dot(light_dir, normal));
 	vec3 diffuse = payload.model->diffuse(uv);
-	float spec = payload.model->specular(uv);
+	//float spec = payload.model->specular(uv);
 
 	vec3 result_color(0, 0, 0);
 

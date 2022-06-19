@@ -65,10 +65,10 @@ struct PixelAttri {
 	vec3 normal;
 	vec3 worldPos;
 	vec2 uv;
+	float zNear, zFar;
 	float* sbuffer;
 	mat4 lightSpaceMatrix;
 	mat4 viewMat;
-	float zNear, zFar;
 };
 
 
