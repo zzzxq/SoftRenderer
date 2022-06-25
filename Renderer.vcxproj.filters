@@ -51,6 +51,9 @@
     <ClCompile Include="shader\depth_shader.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="shader\skybox_shader.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="platform\win32.h">

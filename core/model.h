@@ -30,7 +30,7 @@ public:
 	Model(const char* filename, int is_skybox = 0, int is_from_mmd = 0);
 	~Model();
 	//skybox
-	cubemap_t* environment_map;
+	cubemap_t* environment_map; //Ìì¿ÕºÐ¼¼Êõ
 	int is_skybox;
 
 	int is_from_mmd;
@@ -56,7 +56,7 @@ public:
 	float metalness(vec2 uv);
 	vec3 emission(vec2 uv);
 	float occlusion(vec2 uv);
-	vec3 specular(vec2 uv);
+	float specular(vec2 uv);
 
 	std::vector<int> face(int idx);
 };

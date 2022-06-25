@@ -229,6 +229,8 @@ void rasterize_singlethread(vec4* clipcoord_attri, unsigned char* framebuffer, f
 	vec3 screen_pos[3];
 	unsigned char c[3];
 	int width = WINDOW_WIDTH, height = WINDOW_HEIGHT;
+	int is_skybox = shader.payload.model->is_skybox;
+
 
 	//齐次除法
 	for (int i = 0; i < 3; ++i) {
@@ -239,7 +241,7 @@ void rasterize_singlethread(vec4* clipcoord_attri, unsigned char* framebuffer, f
 	for (int i = 0; i < 3; i++) {
 		screen_pos[i][0] = 0.5 * (ndc_pos[i][0] + 1.0) * (width - 1);
 		screen_pos[i][1] = 0.5 * (ndc_pos[i][1] + 1.0) * (height - 1);
-		screen_pos[i][2] = -clipcoord_attri[i].w();   //记录深度值，裁剪空间的-w分量，即为视图空间下的深度值
+		screen_pos[i][2] =  -clipcoord_attri[i].w();   //记录深度值，裁剪空间的-w分量，即为视图空间下的深度值
 		//screen_pos[i][2] = ndc_pos[i][2];
 	}
 
@@ -249,12 +251,14 @@ void rasterize_singlethread(vec4* clipcoord_attri, unsigned char* framebuffer, f
 	float ymin = float_min(screen_pos[0].y(), float_min(screen_pos[1].y(), screen_pos[2].y()));
 	float ymax = float_max(screen_pos[0].y(), float_max(screen_pos[1].y(), screen_pos[2].y()));
 
-	xmin = float_max(0, xmin); ymin = float_max(0, ymin);
-	xmax = float_min(width - 1, xmax); ymax = float_min(height - 1, ymax);
+	/*xmin = float_max(0, xmin); ymin = float_max(0, ymin);
+	xmax = float_min(width - 1, xmax); ymax = float_min(height - 1, ymax);*/
 
 
-	if (is_back_facing(ndc_pos)) {
-		return;
+	if (!is_skybox)
+	{
+		if (is_back_facing(ndc_pos))
+			return;
 	}
 
 
@@ -284,15 +288,20 @@ void rasterize_singlethread(vec4* clipcoord_attri, unsigned char* framebuffer, f
 				//float z = -Zt;
 				
 				//此时计算出view space下的深度 转到01之间
-				float z = -Zt;
-				float zNear = shader.payload.zNear, zFar = shader.payload.zFar;
+				float z;
+				if (is_skybox) z = 1;
+				else {
+					z = -Zt;
+					float zNear = shader.payload.zNear, zFar = shader.payload.zFar;
 
-				z = (1 / z - 1 / zNear) / (1 / zFar - 1 / zNear);
+					z = (1 / z - 1 / zNear) / (1 / zFar - 1 / zNear);
+				}
+				
 
 
 				//插值矫正，得到视图空间下的深度值， z > 0
 				//记录深度最小的，即离的最近的
-				if (zbuffer[index] > z) {
+				if (zbuffer[index] >= z) {
 					zbuffer[index] = z;
 					vec3* normals = shader.payload.normal_attri;
 					vec2* uvs = shader.payload.uv_attri;
@@ -419,19 +428,19 @@ void draw_triangles(unsigned char* framebuffer, float* zbuffer, IShader& shader,
 		shader.vertex_shader(nface, i);  //顶点着色器
 	}
 
-	//int num_vertex = homo_clipping(shader.payload);
+	int num_vertex = homo_clipping(shader.payload);
 
 
-	//// triangle assembly and reaterize
-	//for (int i = 0; i < num_vertex - 2; i++) {
-	//	int index0 = 0;
-	//	int index1 = i + 1;
-	//	int index2 = i + 2;
-	//	// transform data to real vertex attri
-	//	transform_attri(shader.payload, index0, index1, index2);
+	// triangle assembly and reaterize
+	for (int i = 0; i < num_vertex - 2; i++) {
+		int index0 = 0;
+		int index1 = i + 1;
+		int index2 = i + 2;
+		// transform data to real vertex attri
+		transform_attri(shader.payload, index0, index1, index2);
 
 		rasterize_singlethread(shader.payload.clipcoord_attri, framebuffer, zbuffer, shader);
-	//}
+	}
 
 }
 
@@ -523,6 +532,7 @@ void draw_triangles_with_shadows(unsigned char* framebuffer, float* zbuffer, flo
 	for (int i = 0; i < 3; ++i) {
 		shader.vertex_shader(nface, i);  //顶点着色器
 	}
+
 	rasterize_singlethread_with_shadows(shader.payload.clipcoord_attri, framebuffer, zbuffer, sbuffer, shader, lightSpaceMatrix, viewMat, lightZnear, lightZfar);
 
 }

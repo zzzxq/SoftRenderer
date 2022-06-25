@@ -152,6 +152,7 @@
     <ClCompile Include="shader\depth_shader.cpp" />
     <ClCompile Include="shader\lambert_shader.cpp" />
     <ClCompile Include="shader\phone_shader.cpp" />
+    <ClCompile Include="shader\skybox_shader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="core\camera.h" />

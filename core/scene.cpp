@@ -250,6 +250,37 @@ void build_diablo_scene(Model** model, int& m, IShader** shader_use, IShader** s
 	printf("vertex:%d faces:%d\n", vertex, face);*/
 }
 
+void build_room_skybox(Model** model, int& m, IShader** shader_use, IShader** shader_skybox, mat4 perspective, Camera* camera)
+{
+	m = 2;
+	const char* modelname[] =
+	{
+		"G:/VisualStudio/WorkSpace/Renderer/obj/skybox2/box.obj",
+		"G:/VisualStudio/WorkSpace/Renderer/obj/diablo3_pose/diablo3_pose.obj",
+
+	};
+	int vertex = 0, face = 0;
+	const char* scene_name = "roomBox";
+
+	SkyboxShader* shader_sky = new SkyboxShader();
+	PhongShader* shader_phong = new PhongShader();
+
+	model[0] = new Model(modelname[0], 1, 0); vertex += model[0]->nverts(); face += model[0]->nfaces();
+	model[1] = new Model(modelname[1], 0, 0); vertex += model[1]->nverts(); face += model[1]->nfaces();
+
+	shader_sky->payload.camera = camera;
+	shader_sky->payload.camera_perp_matrix = perspective;
+
+	shader_phong->payload.camera = camera;
+	shader_phong->payload.camera_perp_matrix = perspective;
+
+	*shader_skybox = shader_sky;
+	*shader_use = shader_phong;
+
+	printf("scene name:%s\n", scene_name);
+	printf("model number:%d\n", m);
+	printf("vertex:%d faces:%d\n", vertex, face);
+}
 
 
 

@@ -10,7 +10,10 @@
 #include<cstring>
 
 
-const vec3 Eye(3.f, 2.6f, 4.f);
+//const vec3 Eye(3.f, 2.6f, 4.f);
+//const vec3 Up(0, 1, 0);
+//const vec3 Target(0, 0, 0);
+const vec3 Eye(3, 2, 4.1);
 const vec3 Up(0, 1, 0);
 const vec3 Target(0, 0, 0);
 
@@ -23,13 +26,14 @@ const scene_t Scenes[] = {
 	{ "qiyana", build_qiyana_scene},
 	{ "xier", build_xier_scene},
 	{ "african_head", build_african_head_scene},
-	{ "diablo3_pose", build_diablo_scene}
+	{ "diablo3_pose", build_diablo_scene},
+	{ "room_sksbox", build_room_skybox},
 };
 
 
 void clear_zbuffer(int width, int height, float* zbuffer);
 void clear_framebuffer(int width, int height, unsigned char* framebuffer);
-void update_matrix(Camera& camera, mat4 view_mat, mat4 perspective_mat, IShader* shader_model);
+void update_matrix(Camera& camera, mat4 view_mat, mat4 perspective_mat, IShader* shader_model, IShader* shader_skybox);
 
 int main() {
 	int width = WINDOW_WIDTH, height = WINDOW_HEIGHT;
@@ -74,7 +78,7 @@ int main() {
 	float zNear = -0.1, zFar = -10000;
 	mat4 model_mat = mat4::identity();
 	mat4 view_mat = mat4_lookat(camera.eye, camera.target, camera.up);
-	mat4 perspective_mat = mat4_perspective(60, (float)width / height, zNear, zFar);
+	mat4 perspective_mat = mat4_perspective(80, (float)width / height, zNear, zFar);
 	 
 	srand((unsigned int)time(NULL));
 		
@@ -95,13 +99,18 @@ int main() {
 
 
 		handle_events(camera);
-		update_matrix(camera, view_mat, perspective_mat, shader_model);
+		update_matrix(camera, view_mat, perspective_mat, shader_model, shader_skybox);
 
 		//start renderering
 		for (int m = 0; m < model_num; m++) {
 			shader_model->payload.model = model[m];
+			if (shader_skybox != NULL) shader_skybox->payload.model = model[m];
+			IShader* shader;
+			if (model[m]->is_skybox)
+				shader = shader_skybox;
+			else
+				shader = shader_model;
 
-			IShader* shader = shader_model;
 			for (int i = 0; i < model[m]->nfaces(); i++) {
 				//draw_triangles(framebuffer, zbuffer, *shader, i);
 
@@ -163,10 +172,22 @@ void clear_framebuffer(int width, int height, unsigned char* framebuffer)
 	}
 }
 
-void update_matrix(Camera& camera, mat4 view_mat, mat4 perspective_mat, IShader* shader_model)
+void update_matrix(Camera& camera, mat4 view_mat, mat4 perspective_mat, IShader* shader_model, IShader* shader_skybox)
 {
 	view_mat = mat4_lookat(camera.eye, camera.target, camera.up);
 	mat4 mvp = perspective_mat * view_mat;
 	shader_model->payload.camera_view_matrix = view_mat;
 	shader_model->payload.mvp_matrix = mvp;
+
+	if (shader_skybox != NULL)
+	{
+		mat4 view_skybox = view_mat;
+		view_skybox[0][3] = 0;   //ÒÆ³ýÆ½ÒÆ¾ØÕó
+		view_skybox[1][3] = 0;
+		view_skybox[2][3] = 0;
+		shader_skybox->payload.camera_view_matrix = view_skybox;
+		shader_skybox->payload.mvp_matrix = perspective_mat * view_skybox;
+	}
+
+
 }

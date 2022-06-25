@@ -42,11 +42,24 @@ float ShadowCalculation(vec3& worldpos, mat4 &lightSpaceMatrix, float *sbuffer, 
 	projCoords[0] = 0.5 * (projCoords[0] + 1.0) * (WINDOW_WIDTH - 1);
 	projCoords[1] = 0.5 * (projCoords[1] + 1.0) * (WINDOW_HEIGHT - 1);
 
-	float closestDepth = sbuffer[get_index(projCoords.x(), projCoords.y())]; //获取最近点
+	//float closestDepth = sbuffer[get_index(projCoords.x(), projCoords.y())]; //获取最近点
 	float currentDepth = z;
 
-	float shadow = (currentDepth) > closestDepth ? 1.0 : 0.0;
+	float shadow = 0;
+
+	for (int x = -1; x <= 1; ++x) {
+		for (int y = -1; y <= 1; ++y) {
+			float pcfDepth = sbuffer[get_index(projCoords.x() + x , projCoords.y()  + y)];
+			shadow += currentDepth > pcfDepth ? 1.0 : 0.0;
+		}
+	}
+	shadow /= 9.0;
 	return shadow;
+
+
+
+	/*float shadow = (currentDepth) > closestDepth ? 1.0 : 0.0;
+	return shadow;*/
 }
 
 
@@ -65,14 +78,9 @@ vec3 PhongShader::fragment_shader(PixelAttri& pixelAttri)
 
 	vec3 kd = payload.model->diffuse(uv); //基础颜色，通过贴图方式
 
-	/*float sp;
-	if (payload.model->specularmap)
-		sp = payload.model->specular(uv);
-	else sp = 0.3;
+	
 
-	vec3 ks(sp, sp, sp);  */
-
-	vec3 ks(0, 0, 0);
+	float ks;
 	if (payload.model->specularmap)
 		ks = payload.model->specular(uv);
 
@@ -102,9 +110,9 @@ vec3 PhongShader::fragment_shader(PixelAttri& pixelAttri)
 	vec3 diffuse = cwise_product(kd, light_diffuse_intensity) * std::max(0.0f, costheta);
 
 	costheta = dot(Halfv, normal);
-	vec3 specular = cwise_product(ks, light_specular_intensity) * std::pow(std::max(0.0f, costheta), p);
+	vec3 specular = light_specular_intensity * std::pow(std::max(0.0f, costheta), p) * ks;
 
-	float shadow = ShadowCalculation(worldpos, lightSpaceMatrix, sbuffer, viewSpaceMatrix, zNear, zFar);
+	float shadow =  ShadowCalculation(worldpos, lightSpaceMatrix, sbuffer, viewSpaceMatrix, zNear, zFar);
 
 
 
