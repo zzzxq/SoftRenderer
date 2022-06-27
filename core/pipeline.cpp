@@ -251,11 +251,11 @@ void rasterize_singlethread(vec4* clipcoord_attri, unsigned char* framebuffer, f
 	float ymin = float_min(screen_pos[0].y(), float_min(screen_pos[1].y(), screen_pos[2].y()));
 	float ymax = float_max(screen_pos[0].y(), float_max(screen_pos[1].y(), screen_pos[2].y()));
 
-	/*xmin = float_max(0, xmin); ymin = float_max(0, ymin);
-	xmax = float_min(width - 1, xmax); ymax = float_min(height - 1, ymax);*/
+	xmin = float_max(0, xmin); ymin = float_max(0, ymin);
+	xmax = float_min(width - 1, xmax); ymax = float_min(height - 1, ymax);
 
 
-	if (!is_skybox)
+	if (!is_skybox) //天空盒从内部看，不能裁剪，否则啥都看不到，要裁只能正面剔除
 	{
 		if (is_back_facing(ndc_pos))
 			return;
@@ -292,9 +292,9 @@ void rasterize_singlethread(vec4* clipcoord_attri, unsigned char* framebuffer, f
 				if (is_skybox) z = 1;
 				else {
 					z = -Zt;
-					float zNear = shader.payload.zNear, zFar = shader.payload.zFar;
+					float zNear = shader.payload.zNear, zFar = shader.payload.zFar; //已经是1/zear, 1/zfar
 
-					z = (1 / z - 1 / zNear) / (1 / zFar - 1 / zNear);
+					z = (1 / z - zNear) / (zFar - zNear);
 				}
 				
 
@@ -383,7 +383,7 @@ void rasterize_singlethread_with_shadows(vec4* clipcoord_attri, unsigned char* f
 				float z = -Zt;
 				//此时计算出view space下的深度 转到01之间
 				float zNear = shader.payload.zNear, zFar = shader.payload.zFar;
-				z = (1 / z - 1 / zNear) / (1 / zFar - 1 / zNear);
+				z = (1 / z - zNear) / (zFar - zNear);
 				//插值矫正，得到视图空间下的深度值， z > 0
 				//记录深度最小的，即离的最近的
 				if (zbuffer[index] > z) {

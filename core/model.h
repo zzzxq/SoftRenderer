@@ -4,7 +4,7 @@
 #include<vector>
 #include"maths.h"
 #include"tgaimage.h"
-
+#include <utility>
 
 typedef struct cubemap cubemap_t;
 
@@ -21,16 +21,40 @@ private:
 	std::vector<vec2> uvs;
 
 	void load_cubemap(const char* filename);
-	void create_map(const char* filename);
+
 	void load_texture(std::string filename, const char* suffix, TGAImage* img);
 	void load_texture(std::string filename, const char* suffix, TGAImage& img);
 
 
 public:
+	Model() {}
 	Model(const char* filename, int is_skybox = 0, int is_from_mmd = 0);
 	~Model();
 	//skybox
+
+	void setVerts(std::vector<vec3>&& Verts) 
+	{
+		this->verts = std::move(Verts);
+	}
+	void setNorm(std::vector<vec3>&& Norms)
+	{
+		this->norms = std::move(Norms);
+	}
+	void setUV(std::vector<vec2>&& Uvs)
+	{
+		this->uvs = std::move(Uvs);
+	}
+	void setFaces(std::vector<std::vector<int>>&& faces)
+	{
+		this->faces = std::move(faces);
+	}
+	void create_map(const char* filename);
+	void load_Irradiancemap(const char* filename);
+
+
+
 	cubemap_t* environment_map; //天空盒技术
+	cubemap_t* irradiance_map; //辐照度贴图
 	int is_skybox;
 
 	int is_from_mmd;
@@ -42,6 +66,9 @@ public:
 	TGAImage* metalnessmap;
 	TGAImage* occlusion_map;
 	TGAImage* emision_map;
+
+	float metallic_s;
+	float roughness_s;
 
 	int nverts();
 	int nfaces();

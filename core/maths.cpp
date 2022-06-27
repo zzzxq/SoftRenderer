@@ -54,7 +54,10 @@ vec2 operator/(vec2 v, double t)
 
 /* vec3 class member functions */
 vec3::vec3() : e{ 0,0,0 } {}
+vec3::vec3(float e1) : e{e1, e1, e1} {}
 vec3::vec3(float e0, float e1, float e2) : e{ e0,e1,e2 } {}
+vec3::vec3(vec4 v) : e {v.e[0], v.e[1], v.e[2]} {}
+
 float vec3::x() const { return e[0]; }
 float vec3::y() const { return e[1]; }
 float vec3::z() const { return e[2]; }
@@ -94,6 +97,11 @@ vec3 operator-(const vec3& u, const int a)
 	return vec3(u.e[0] - a, u.e[1] - a, u.e[2] - a);
 
 }
+vec3 operator-(const int a, const vec3& u)
+{
+	return vec3(a - u.e[0], a - u.e[1], a - u.e[2]);
+}
+
 
 
 vec3 operator*(const vec3& u, const vec3& v)
@@ -110,6 +118,11 @@ vec3 operator*(const vec3& v, double t)
 {
 	return t * v;
 }
+vec3 operator/(const vec3& u, const vec3& v)
+{
+	return vec3(u.e[0] / v.e[0], u.e[1] / v.e[1], u.e[2] / v.e[2]);
+}
+
 
 vec3 operator/(vec3 v, double t)
 {
@@ -139,6 +152,16 @@ vec3 cwise_product(const vec3& a, const vec3& b)
 {
 	return vec3(a[0] * b[0], a[1] * b[1], a[2] * b[2]);
 }
+vec3 pow_vec3(const vec3& u, float t)
+{
+	vec3 v;
+	v.e[0] = pow(u.e[0], t);
+	v.e[1] = pow(u.e[1], t);
+	v.e[2] = pow(u.e[2], t);
+
+	return v;
+}
+
 
 vec4::vec4() : e{ 0,0,0,0 } {}
 vec4::vec4(float e0, float e1, float e2, float e3) : e{ e0,e1,e2,e3 } {}
@@ -188,6 +211,12 @@ vec4 operator*(const vec4& v, double t)
 }
 
 mat3::mat3() {}
+mat3::mat3(mat4 m) {
+	for (int i = 0; i < 3; i++)
+		for (int j = 0; j < 3; j++) {
+			rows[i][j] = m.rows[i][j];
+		}
+}
 vec3 mat3::operator[](int i)const { return rows[i]; }
 vec3& mat3::operator[](int i) { return rows[i]; }
 
@@ -375,6 +404,20 @@ mat4 mulMatrixFinal(__m128 Vrow[4], __m128 Mrow[4])
 	return m;
 }
 
+vec3 operator*(const mat3& m, const vec3 v)
+{
+	float product[3];
+	int i;
+	for (i = 0; i < 3; i++)
+	{
+		float a = m[i][0] * v[0];
+		float b = m[i][1] * v[1];
+		float c = m[i][2] * v[2];
+		product[i] = a + b + c;
+	}
+	return vec3(product[0], product[1], product[2]);
+}
+
 
 vec4 operator*(const mat4& m, const vec4 v)
 {
@@ -390,6 +433,19 @@ vec4 operator*(const mat4& m, const vec4 v)
 	}
 	return vec4(product[0], product[1], product[2], product[3]);
 }
+
+
+mat3 operator*(const mat3& m1, const mat3& m2)
+{
+	mat3 m = mat3::identity();
+	int i, j, k;
+	for (i = 0; i < 3; i++)
+		for (j = 0; j < 3; j++)
+			for (k = 0; k < 3; k++)
+				m[i][j] += m1[i][k] * m2[k][j];
+	return m;
+}
+
 
 mat4 operator*(const mat4& m1, const mat4& m2)
 {
@@ -421,6 +477,10 @@ mat4 mat4_translate(float tx, float ty, float tz)
 	m[2][3] = tz;
 	return m;
 }
+
+
+
+
 mat4 mat4_scale(float sx, float sy, float sz)
 {
 	mat4 m = mat4::identity();

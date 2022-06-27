@@ -36,7 +36,7 @@ float ShadowCalculation(vec3& worldpos, mat4 &lightSpaceMatrix, float *sbuffer, 
 	//获取深度
 	vec4 lightViewSpacePos = viewMat * worldposVec4;
 	float z = -lightViewSpacePos.z();
-	z = (1 / z - 1 / zNear) / (1 / zFar - 1 / zNear);
+	z = (1 / z - zNear) / (zFar - zNear);
 
 	//从-1到1 转到0到1
 	projCoords[0] = 0.5 * (projCoords[0] + 1.0) * (WINDOW_WIDTH - 1);
@@ -67,6 +67,9 @@ vec3 PhongShader::fragment_shader(PixelAttri& pixelAttri)
 {
 	//片段着色器
 	vec3 normal = pixelAttri.normal;
+
+	//normal = mat3(payload.model_matrix) * normal;
+
 	vec3 worldpos = pixelAttri.worldPos;
 	vec2 uv = pixelAttri.uv;
 	float* sbuffer = pixelAttri.sbuffer;
@@ -78,7 +81,8 @@ vec3 PhongShader::fragment_shader(PixelAttri& pixelAttri)
 
 	vec3 kd = payload.model->diffuse(uv); //基础颜色，通过贴图方式
 
-	
+	int IsShadow = false;
+
 
 	float ks;
 	if (payload.model->specularmap)
@@ -112,8 +116,12 @@ vec3 PhongShader::fragment_shader(PixelAttri& pixelAttri)
 	costheta = dot(Halfv, normal);
 	vec3 specular = light_specular_intensity * std::pow(std::max(0.0f, costheta), p) * ks;
 
-	float shadow =  ShadowCalculation(worldpos, lightSpaceMatrix, sbuffer, viewSpaceMatrix, zNear, zFar);
+	float shadow;
 
+	if (IsShadow)
+		shadow = ShadowCalculation(worldpos, lightSpaceMatrix, sbuffer, viewSpaceMatrix, zNear, zFar);
+	else
+		shadow = 0;
 
 
 	vec3 result_color(0, 0, 0);
