@@ -5,8 +5,8 @@
 #include "../core/camera.h"
 
 
-const int WINDOW_HEIGHT = 600;
-const int WINDOW_WIDTH = 800;
+const int WINDOW_HEIGHT = 780;
+const int WINDOW_WIDTH = 1280;
 
 static int get_index(int x, int y)
 {
@@ -24,6 +24,15 @@ typedef struct cubemap
 {
 	TGAImage* faces[6];
 }cubemap_t;
+
+
+typedef struct iblmap
+{
+	int mip_levels;
+	cubemap_t* irradiance_map;
+	cubemap_t* prefilter_maps[15];
+	TGAImage* brdf_lut;
+} iblmap_t;
 
 typedef struct
 {
@@ -57,7 +66,7 @@ typedef struct
 	float zNear, zFar;
 
 	//for image-based lighting
-	//iblmap_t* iblmap;
+	iblmap_t* iblmap;
 }payload_t;
 
 
@@ -65,11 +74,15 @@ struct PixelAttri {
 	vec3 normal;
 	vec3 worldPos;
 	vec2 uv;
+	float zNear, zFar;
 	float* sbuffer;
 	mat4 lightSpaceMatrix;
 	mat4 viewMat;
-	float zNear, zFar;
 };
+
+
+
+
 
 
 class IShader
@@ -106,7 +119,7 @@ class PBRShader :public IShader
 public:
 	void vertex_shader(int nfaces, int nvertex);
 	vec3 fragment_shader(PixelAttri& pixelAttri);
-	vec3 direct_fragment_shader(float alpha, float beta, float gamma);
+	vec3 direct_fragment_shader(PixelAttri& pixelAttri);
 };
 
 class SkyboxShader :public IShader

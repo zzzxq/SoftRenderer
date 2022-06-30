@@ -4,6 +4,8 @@
 #include "global.h"
 #include <xmmintrin.h>
 
+class vec4;
+class mat4;
 
 #define SHUFFLE_PARAM(x, y, z, w) \
 	((x) | ((y) << 2) | ((z) << 4) | ((w) << 6))
@@ -46,7 +48,8 @@ class vec3 {
 public:
 	vec3();
 	vec3(float e0, float e1, float e2);
-
+	vec3(float e);
+	vec3(vec4 v);
 	float x() const;
 	float y() const;
 	float z() const;
@@ -87,7 +90,7 @@ public:
 class mat3 {
 public:
 	mat3();
-
+	mat3(mat4 m);
 	vec3& operator[](int i);
 	vec3 operator[](int i) const;
 
@@ -133,14 +136,20 @@ vec3 operator+(const vec3& u, const float v);
 
 vec3 operator-(const vec3& u, const vec3& v);
 vec3 operator-(const vec3& u, const int a);
+vec3 operator-(const int a, const vec3& u);
+
 vec3 operator*(const vec3& u, const vec3& v);
 vec3 operator*(double t, const vec3& v);
 vec3 operator*(const vec3& v, double t);
+vec3 operator/(const vec3& u, const vec3& v);
+
 vec3 operator/(vec3 v, double t);
 double dot(const vec3& u, const vec3& v);
 vec3 cross(const vec3& u, const vec3& v);
 vec3 unit_vector(const vec3& v);
 vec3 cwise_product(const vec3& a, const vec3& b);
+
+vec3 pow_vec3(const vec3& u, float t);
 
 /* vec4 related functions */
 std::ostream& operator<<(std::ostream& out, const vec4& v);
@@ -156,6 +165,13 @@ vec4 operator*(const vec4& v, double t);
 std::ostream& operator<<(std::ostream& out, const mat3& m);
 std::ostream& operator<<(std::ostream& out, const mat4& m);
 vec4 operator*(const mat4& m, const vec4 v);
+
+
+vec3 operator*(const mat3& m, const vec3 v);
+
+mat3 operator*(const mat3& m1, const mat3& m2);
+
+
 mat4 operator*(const mat4& m1, const mat4& m2);
 
 //实现SSE矩阵 加速运算

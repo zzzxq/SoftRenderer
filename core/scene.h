@@ -18,8 +18,16 @@ void build_qiyana_scene(Model** model, int& m, IShader** shader_use, IShader** s
 void build_xier_scene(Model** model, int& m, IShader** shader_use, IShader** shader_skybox, mat4 perspective, Camera* camera);
 void build_african_head_scene(Model** model, int& m, IShader** shader_use, IShader** shader_skybox, mat4 perspective, Camera* camera);
 void build_diablo_scene(Model** model, int& m, IShader** shader_use, IShader** shader_skybox, mat4 perspective, Camera* camera);
+void build_room_skybox(Model** model, int& m, IShader** shader_use, IShader** shader_skybox, mat4 perspective, Camera* camera);
+
+void build_sphere_scene(Model** model, int& m, IShader** shader_use, IShader** shader_skybox, mat4 perspective, Camera* camera);
+void build_IBL_sphere_scene(Model** model, int& m, IShader** shader_use, IShader** shader_skybox, mat4 perspective, Camera* camera);
+
+
+
 
 void build_shadow_scene(Model** model, int& m, IShader** shader_use, mat4 view_mat,  mat4 perspective);
+
 
 
 

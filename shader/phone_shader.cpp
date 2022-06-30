@@ -36,17 +36,30 @@ float ShadowCalculation(vec3& worldpos, mat4 &lightSpaceMatrix, float *sbuffer, 
 	//获取深度
 	vec4 lightViewSpacePos = viewMat * worldposVec4;
 	float z = -lightViewSpacePos.z();
-	z = (1 / z - 1 / zNear) / (1 / zFar - 1 / zNear);
+	z = (1 / z - zNear) / (zFar - zNear);
 
 	//从-1到1 转到0到1
 	projCoords[0] = 0.5 * (projCoords[0] + 1.0) * (WINDOW_WIDTH - 1);
 	projCoords[1] = 0.5 * (projCoords[1] + 1.0) * (WINDOW_HEIGHT - 1);
 
-	float closestDepth = sbuffer[get_index(projCoords.x(), projCoords.y())]; //获取最近点
+	//float closestDepth = sbuffer[get_index(projCoords.x(), projCoords.y())]; //获取最近点
 	float currentDepth = z;
 
-	float shadow = (currentDepth) > closestDepth ? 1.0 : 0.0;
+	float shadow = 0;
+
+	for (int x = -1; x <= 1; ++x) {
+		for (int y = -1; y <= 1; ++y) {
+			float pcfDepth = sbuffer[get_index(projCoords.x() + x , projCoords.y()  + y)];
+			shadow += currentDepth > pcfDepth ? 1.0 : 0.0;
+		}
+	}
+	shadow /= 9.0;
 	return shadow;
+
+
+
+	/*float shadow = (currentDepth) > closestDepth ? 1.0 : 0.0;
+	return shadow;*/
 }
 
 
@@ -54,6 +67,9 @@ vec3 PhongShader::fragment_shader(PixelAttri& pixelAttri)
 {
 	//片段着色器
 	vec3 normal = pixelAttri.normal;
+
+	//normal = mat3(payload.model_matrix) * normal;
+
 	vec3 worldpos = pixelAttri.worldPos;
 	vec2 uv = pixelAttri.uv;
 	float* sbuffer = pixelAttri.sbuffer;
@@ -65,14 +81,18 @@ vec3 PhongShader::fragment_shader(PixelAttri& pixelAttri)
 
 	vec3 kd = payload.model->diffuse(uv); //基础颜色，通过贴图方式
 
-	float sp;
-	/*if (payload.model->specularmap)
-		sp = payload.model->specular(uv);
-	else sp = 0.3;
+	int IsShadow = false;
 
-	vec3 ks(sp, sp, sp);  */
 
-	float p = 150.0;
+	float ks;
+	if (payload.model->specularmap)
+		ks = payload.model->specular(uv);
+
+	vec3 emit(0., 0., 0.);
+	if (payload.model->emision_map)
+		emit = payload.model->emission(uv);
+
+	float p = 60.0;
 	vec3 viewPos = payload.camera->eye;
 	//vec3 lightPos(1.f, 2.f, 5.f);
 
@@ -94,15 +114,19 @@ vec3 PhongShader::fragment_shader(PixelAttri& pixelAttri)
 	vec3 diffuse = cwise_product(kd, light_diffuse_intensity) * std::max(0.0f, costheta);
 
 	costheta = dot(Halfv, normal);
-	//vec3 specular = cwise_product(ks, light_specular_intensity) * std::pow(std::max(0.0f, costheta), p);
+	vec3 specular = light_specular_intensity * std::pow(std::max(0.0f, costheta), p) * ks;
 
-	float shadow = ShadowCalculation(worldpos, lightSpaceMatrix, sbuffer, viewSpaceMatrix, zNear, zFar);
+	float shadow;
 
+	if (IsShadow)
+		shadow = ShadowCalculation(worldpos, lightSpaceMatrix, sbuffer, viewSpaceMatrix, zNear, zFar);
+	else
+		shadow = 0;
 
 
 	vec3 result_color(0, 0, 0);
-	result_color = ambient + (1 - shadow) * (diffuse);
-	return result_color * 255.f;
+	result_color = ambient + (1 - shadow) * (diffuse + emit);
+	return result_color * 255.0f;
 
 }
 

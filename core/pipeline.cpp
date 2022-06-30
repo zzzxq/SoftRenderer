@@ -229,6 +229,8 @@ void rasterize_singlethread(vec4* clipcoord_attri, unsigned char* framebuffer, f
 	vec3 screen_pos[3];
 	unsigned char c[3];
 	int width = WINDOW_WIDTH, height = WINDOW_HEIGHT;
+	int is_skybox = shader.payload.model->is_skybox;
+
 
 	//齐次除法
 	for (int i = 0; i < 3; ++i) {
@@ -239,8 +241,8 @@ void rasterize_singlethread(vec4* clipcoord_attri, unsigned char* framebuffer, f
 	for (int i = 0; i < 3; i++) {
 		screen_pos[i][0] = 0.5 * (ndc_pos[i][0] + 1.0) * (width - 1);
 		screen_pos[i][1] = 0.5 * (ndc_pos[i][1] + 1.0) * (height - 1);
-		screen_pos[i][2] = -clipcoord_attri[i].w();   //记录深度值，裁剪空间的-w分量，即为视图空间下的深度值
-
+		screen_pos[i][2] =  -clipcoord_attri[i].w();   //记录深度值，裁剪空间的-w分量，即为视图空间下的深度值
+		//screen_pos[i][2] = ndc_pos[i][2];
 	}
 
 	//光栅化过程
@@ -253,8 +255,10 @@ void rasterize_singlethread(vec4* clipcoord_attri, unsigned char* framebuffer, f
 	xmax = float_min(width - 1, xmax); ymax = float_min(height - 1, ymax);
 
 
-	if (is_back_facing(ndc_pos)) {
-		return;
+	if (!is_skybox) //天空盒从内部看，不能裁剪，否则啥都看不到，要裁只能正面剔除
+	{
+		if (is_back_facing(ndc_pos))
+			return;
 	}
 
 
@@ -270,36 +274,54 @@ void rasterize_singlethread(vec4* clipcoord_attri, unsigned char* framebuffer, f
 				int index = get_index(x, y);
 
 				float Zt = 1.0 / (alpha / clipcoord_attri[0].w() + beta / clipcoord_attri[1].w() + gamma / clipcoord_attri[2].w());
-				//float z = (alpha * screen_pos[0].z() / clipcoord_attri[0].w() + beta * screen_pos[1].z() / clipcoord_attri[1].w() +
-					//gamma * screen_pos[2].z() / clipcoord_attri[2].w()) * Zt; //获取原视图坐标下的深度信息(0, 1)之间
-				float z = -Zt;
-				//此时计算出view space下的深度 转到01之间
-				float zNear = shader.payload.zNear, zFar = shader.payload.zFar;
 
-				z = (1 / z - 1 / zNear) / (1 / zFar - 1 / zNear);
+				/*vec4* clip_coords = shader.payload.clipcoord_attri;
+				vec3* world_coords = shader.payload.worldcoord_attri;
+
+				vec3 worldpos = (alpha * world_coords[0] / clip_coords[0].w() + beta * world_coords[1] / clip_coords[1].w() +
+					gamma * world_coords[2] / clip_coords[2].w()) * Zt;
+				vec4 clip_c = shader.payload.mvp_matrix * to_vec4(worldpos, 1.0f);
+
+				float z = clip_c.z() / clip_c.w();
+				z = z * 0.5 + 0.5;
+				z = 1.0 - z;*/
+				//float z = -Zt;
+				
+				//此时计算出view space下的深度 转到01之间
+				float z;
+				if (is_skybox) z = 1;
+				else {
+					z = -Zt;
+					float zNear = shader.payload.zNear, zFar = shader.payload.zFar; //已经是1/zear, 1/zfar
+
+					z = (1 / z - zNear) / (zFar - zNear);
+				}
+				
 
 
 				//插值矫正，得到视图空间下的深度值， z > 0
 				//记录深度最小的，即离的最近的
-				if (zbuffer[index] > z) {
+				if (zbuffer[index] >= z) {
 					zbuffer[index] = z;
-					vec4* clip_coords = shader.payload.clipcoord_attri;
-					vec3* world_coords = shader.payload.worldcoord_attri;
 					vec3* normals = shader.payload.normal_attri;
 					vec2* uvs = shader.payload.uv_attri;
+					vec4* clip_coords = shader.payload.clipcoord_attri;
+					vec3* world_coords = shader.payload.worldcoord_attri;
+
+					vec3 worldpos = (alpha * world_coords[0] / clip_coords[0].w() + beta * world_coords[1] / clip_coords[1].w() +
+						gamma * world_coords[2] / clip_coords[2].w()) * Zt;
 					//透视矫正
 					vec3 normal = (alpha * normals[0] / clip_coords[0].w() + beta * normals[1] / clip_coords[1].w() +
 						gamma * normals[2] / clip_coords[2].w()) * Zt;
 					vec2 uv = (alpha * uvs[0] / clip_coords[0].w() + beta * uvs[1] / clip_coords[1].w() +
 						gamma * uvs[2] / clip_coords[2].w()) * Zt;
-					vec3 worldpos = (alpha * world_coords[0] / clip_coords[0].w() + beta * world_coords[1] / clip_coords[1].w() +
-						gamma * world_coords[2] / clip_coords[2].w()) * Zt;
+					
 
 					if (shader.payload.model->normalmap_tangent)
 						normal = cal_normal(normal, world_coords, uvs, uv, shader.payload.model->normalmap_tangent);
 					else if (shader.payload.model->normalmap)
 						normal = texture_sample(uv, shader.payload.model->normalmap) * 2 - 1;
-					PixelAttri pixelAttri{normal, worldpos, uv};
+					PixelAttri pixelAttri{normal, worldpos, uv, z};
 					vec3 color = shader.fragment_shader(pixelAttri);
 					for (int i = 0; i < 3; i++) {
 						c[i] = (int)float_clamp(color[i], 0, 255);
@@ -361,7 +383,7 @@ void rasterize_singlethread_with_shadows(vec4* clipcoord_attri, unsigned char* f
 				float z = -Zt;
 				//此时计算出view space下的深度 转到01之间
 				float zNear = shader.payload.zNear, zFar = shader.payload.zFar;
-				z = (1 / z - 1 / zNear) / (1 / zFar - 1 / zNear);
+				z = (1 / z - zNear) / (zFar - zNear);
 				//插值矫正，得到视图空间下的深度值， z > 0
 				//记录深度最小的，即离的最近的
 				if (zbuffer[index] > z) {
@@ -383,7 +405,9 @@ void rasterize_singlethread_with_shadows(vec4* clipcoord_attri, unsigned char* f
 						normal = cal_normal(normal, world_coords, uvs, uv, shader.payload.model->normalmap_tangent);
 					else if (shader.payload.model->normalmap)
 						normal = texture_sample(uv, shader.payload.model->normalmap) * 2 - 1;
-					PixelAttri pixelAttri{ normal, worldpos, uv, sbuffer, lightSpaceMatrix, viewMat, lightZnear, lightZfar};
+					
+					PixelAttri pixelAttri{ normal, worldpos, uv, lightZnear, lightZfar, sbuffer, lightSpaceMatrix, viewMat};
+					
 					vec3 color = shader.fragment_shader(pixelAttri);
 
 					
@@ -404,19 +428,19 @@ void draw_triangles(unsigned char* framebuffer, float* zbuffer, IShader& shader,
 		shader.vertex_shader(nface, i);  //顶点着色器
 	}
 
-	//int num_vertex = homo_clipping(shader.payload);
+	int num_vertex = homo_clipping(shader.payload);
 
 
-	//// triangle assembly and reaterize
-	//for (int i = 0; i < num_vertex - 2; i++) {
-	//	int index0 = 0;
-	//	int index1 = i + 1;
-	//	int index2 = i + 2;
-	//	// transform data to real vertex attri
-	//	transform_attri(shader.payload, index0, index1, index2);
+	// triangle assembly and reaterize
+	for (int i = 0; i < num_vertex - 2; i++) {
+		int index0 = 0;
+		int index1 = i + 1;
+		int index2 = i + 2;
+		// transform data to real vertex attri
+		transform_attri(shader.payload, index0, index1, index2);
 
 		rasterize_singlethread(shader.payload.clipcoord_attri, framebuffer, zbuffer, shader);
-	//}
+	}
 
 }
 
@@ -451,7 +475,6 @@ void Getsbuffer(float* sbuffer, IShader& shader, int nface)
 		screen_pos[i][1] = 0.5 * (ndc_pos[i][1] + 1.0) * (height - 1); 
 		//正交投影，深度值利用view mat
 		screen_pos[i][2] = viewSpaceCoords[i].z();   //视图空间下的深度值
-
 	}
 
 	//光栅化过程
@@ -479,6 +502,7 @@ void Getsbuffer(float* sbuffer, IShader& shader, int nface)
 
 				float Zt = 1.0 / (alpha / screen_pos[0][2] + beta / screen_pos[1][2] + gamma / screen_pos[2][2]);
 				float z = -Zt;
+				
 				//此时计算出view space下的深度 转到01之间
 				float zNear = shader.payload.zNear, zFar = shader.payload.zFar;
 
@@ -508,6 +532,7 @@ void draw_triangles_with_shadows(unsigned char* framebuffer, float* zbuffer, flo
 	for (int i = 0; i < 3; ++i) {
 		shader.vertex_shader(nface, i);  //顶点着色器
 	}
+
 	rasterize_singlethread_with_shadows(shader.payload.clipcoord_attri, framebuffer, zbuffer, sbuffer, shader, lightSpaceMatrix, viewMat, lightZnear, lightZfar);
 
 }

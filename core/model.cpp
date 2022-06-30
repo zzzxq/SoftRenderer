@@ -105,6 +105,12 @@ Model::~Model()
 			delete environment_map->faces[i];
 		delete environment_map;
 	}
+	if (irradiance_map)
+	{
+		for (int i = 0; i < 6; i++)
+			delete irradiance_map->faces[i];
+		delete irradiance_map;
+	}
 }
 
 
@@ -193,6 +199,24 @@ void Model::load_cubemap(const char* filename)
 	environment_map->faces[5] = new TGAImage();
 	load_texture(filename, "_front.tga", environment_map->faces[5]);
 }
+void Model::load_Irradiancemap(const char* filename)
+{
+	if (irradiance_map == NULL) 
+		irradiance_map = new cubemap_t();
+	irradiance_map->faces[0] = new TGAImage();
+	load_texture(filename, "_right1.tga", irradiance_map->faces[0]);
+	irradiance_map->faces[1] = new TGAImage();
+	load_texture(filename, "_left1.tga", irradiance_map->faces[1]);
+	irradiance_map->faces[2] = new TGAImage();
+	load_texture(filename, "_top1.tga", irradiance_map->faces[2]);
+	irradiance_map->faces[3] = new TGAImage();
+	load_texture(filename, "_bottom1.tga", irradiance_map->faces[3]);
+	irradiance_map->faces[4] = new TGAImage();
+	load_texture(filename, "_back1.tga", irradiance_map->faces[4]);
+	irradiance_map->faces[5] = new TGAImage();
+	load_texture(filename, "_front1.tga", irradiance_map->faces[5]);
+}
+
 
 int Model::nverts()
 {
