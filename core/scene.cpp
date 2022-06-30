@@ -336,8 +336,9 @@ void build_room_skybox(Model** model, int& m, IShader** shader_use, IShader** sh
 
 
 
-void getUVsphere(Model *m)
+Model* getUVsphere(const char *filename)
 {
+	Model *m = new Model();
 	std::vector<vec3> verts;
 	std::vector<std::vector<int>> faces; // attention, this Vec3i means vertex/uv/normal
 	std::vector<vec3> norms;
@@ -408,11 +409,11 @@ void getUVsphere(Model *m)
 	m->setFaces(std::move(faces));
 	const char* modelname[] =
 	{
-		"G:/VisualStudio/WorkSpace/Renderer/obj/sphere_gold/sphere.obj",
+		"G:/VisualStudio/WorkSpace/Renderer/obj/sphere_gold2/sphere.obj",
 	};
-	m->create_map(modelname[0]);
-
-	return ;
+	
+	m->create_map(filename);
+	return m;
 }
 
 void build_sphere_scene(Model** model, int& m, IShader** shader_use, IShader** shader_skybox, mat4 perspective, Camera* camera)
@@ -426,9 +427,8 @@ void build_sphere_scene(Model** model, int& m, IShader** shader_use, IShader** s
 	int vertex = 0, face = 0;
 	const char* scene_name = "sphere";
 	PBRShader* shader_PBR = new PBRShader();
-	model[0] = new Model();
-
-	getUVsphere(model[0]);
+	//model[0] = new Model();
+	model[0] = getUVsphere(modelname[0]);
 
 	vertex += model[0]->nverts();
 	face += model[0]->nfaces();
@@ -453,9 +453,18 @@ void build_sphere_scene(Model** model, int& m, IShader** shader_use, IShader** s
 
 void build_IBL_sphere_scene(Model** model, int& m, IShader** shader_use, IShader** shader_skybox, mat4 perspective, Camera* camera)
 {
-	m = 2;
+	m = 6;
 	const char* modelname[] =
 	{
+		"G:/VisualStudio/WorkSpace/Renderer/obj/sphere_red/sphere.obj",
+
+		"G:/VisualStudio/WorkSpace/Renderer/obj/sphere/sphere.obj",
+
+		"G:/VisualStudio/WorkSpace/Renderer/obj/sphere_gold/sphere.obj",
+		"G:/VisualStudio/WorkSpace/Renderer/obj/sphere_white/sphere.obj",
+
+		"G:/VisualStudio/WorkSpace/Renderer/obj/sphere_floor/sphere.obj",
+
 		"G:/VisualStudio/WorkSpace/Renderer/obj/skybox4/box.obj",
 	};
 
@@ -464,9 +473,12 @@ void build_IBL_sphere_scene(Model** model, int& m, IShader** shader_use, IShader
 	PBRShader* shader_PBR = new PBRShader();
 	SkyboxShader* shader_sky = new SkyboxShader();
 
-	model[0] = new Model();	getUVsphere(model[0]);	vertex += model[0]->nverts(); face += model[0]->nfaces();
+	for (int i = 0; i < 5; i++) {
+		model[i] = getUVsphere(modelname[i]); vertex += model[i]->nverts(); face += model[i]->nfaces();
+		std::cout << "model " << i << " done" << std::endl;
+	}
 
-	model[1] = new Model(modelname[0], 1, 0); vertex += model[1]->nverts(); face += model[1]->nfaces();  //读取天空盒
+	model[5] = new Model(modelname[5], 1, 0); vertex += model[5]->nverts(); face += model[5]->nfaces();  //读取天空盒
 
 
 	shader_sky->payload.camera = camera;
@@ -492,7 +504,34 @@ void build_IBL_sphere_scene(Model** model, int& m, IShader** shader_use, IShader
 
 void build_helmet_scene(Model** model, int& m, IShader** shader_use, IShader** shader_skybox, mat4 perspective, Camera* camera)
 {
+	m = 2;
+	const char* modelname[] =
+	{
+		"G:/VisualStudio/WorkSpace/Renderer/obj/helmet/helmet.obj",
+		"G:/VisualStudio/WorkSpace/Renderer/obj/skybox4/box.obj",
+	};
 
+	PBRShader* shader_pbr = new PBRShader();
+	SkyboxShader* shader_sky = new SkyboxShader();
+
+	int vertex = 0, face = 0;
+	const char* scene_name = "helmet";
+	model[0] = new Model(modelname[0], 0, 0); vertex += model[0]->nverts(); face += model[0]->nfaces();
+	model[1] = new Model(modelname[1], 1, 0); vertex += model[1]->nverts(); face += model[1]->nfaces();
+
+	shader_pbr->payload.camera_perp_matrix = perspective;
+	shader_pbr->payload.camera = camera;
+	shader_sky->payload.camera_perp_matrix = perspective;
+	shader_sky->payload.camera = camera;
+
+	load_ibl_map(shader_pbr->payload, "G:/VisualStudio/WorkSpace/Renderer/obj/common2");
+
+	*shader_use = shader_pbr;
+	*shader_skybox = shader_sky;
+
+	printf("scene name:%s\n", scene_name);
+	printf("model number:%d\n", m);
+	printf("vertex:%d faces:%d\n", vertex, face);
 }
 void build_gun_scene(Model** model, int& m, IShader** shader_use, IShader** shader_skybox, mat4 perspective, Camera* camera)
 {

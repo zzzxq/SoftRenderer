@@ -115,13 +115,17 @@ vec3 PBRShader::fragment_shader(PixelAttri& pixelAttri)
 	vec2 uv = pixelAttri.uv;
 	//float metallic = payload.model->metallic_s;
 	//float roughness = payload.model->roughness_s;
-	//vec3 albedo(0.5f, 0.0f, 0.0f); //漫反射系数
+	vec3 albedo(0.5f, 0.0f, 0.0f); //漫反射系数
 
 	float metallic = payload.model->metalness(uv);
 	float roughness = payload.model->roughness(uv);
-	vec3 albedo = pow_vec3(payload.model->diffuse(uv), 2.2); //从srgb转到线性空间
+	if (payload.model->diffusemap) albedo = pow_vec3(payload.model->diffuse(uv), 2.2); //从srgb转到线性空间
 
-	float ao = 1.0f; //环境光遮蔽
+	vec3 emit(0);
+
+	if (payload.model->emision_map)  emit = payload.model->emission(uv);
+	float ao = 1.0f;
+	if (payload.model->occlusion_map) ao = pow(payload.model->occlusion(uv), 2.2); //环境光遮蔽
 
 	vec3 N = unit_vector(normal);
 	
@@ -133,37 +137,37 @@ vec3 PBRShader::fragment_shader(PixelAttri& pixelAttri)
 
 	vec3 Lo(0.0, 0.0, 0.0);
 
-	for (int i = 0; i < sizeof(lightPositions) / sizeof(lightPositions[0]); i++)
-	{
-		vec3 L_dir = lightPositions[i] - worldPos;
-		vec3 L = unit_vector(L_dir);
-		vec3 H = unit_vector(V + L);
-		float distance = L_dir.norm_squared(); //距离的平方
-		float attenuation = 1.0 / distance;   //衰减系数
-		vec3 radiance = lightColors[i] * attenuation;
+	//for (int i = 0; i < sizeof(lightPositions) / sizeof(lightPositions[0]); i++)
+	//{
+	//	vec3 L_dir = lightPositions[i] - worldPos;
+	//	vec3 L = unit_vector(L_dir);
+	//	vec3 H = unit_vector(V + L);
+	//	float distance = L_dir.norm_squared(); //距离的平方
+	//	float attenuation = 1.0 / distance;   //衰减系数
+	//	vec3 radiance = lightColors[i] * attenuation;
 
-		//下面这段有问题，然后加上光源位置调整。
+	//	//下面这段有问题，然后加上光源位置调整。
 
-		float NDF = DistributionGGX(N, H, roughness);
-		float G = GeometrySmith(N, V, L, roughness);
-		float costheta = float_clamp(dot(H, V), 0.0f, 1.0f);
-		vec3 F = fresnelSchlick(costheta, F0); //反射率
+	//	float NDF = DistributionGGX(N, H, roughness);
+	//	float G = GeometrySmith(N, V, L, roughness);
+	//	float costheta = float_clamp(dot(H, V), 0.0f, 1.0f);
+	//	vec3 F = fresnelSchlick(costheta, F0); //反射率
 
-		vec3 numerator = NDF * G * F;
-		float denominator = 4.0f * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+	//	vec3 numerator = NDF * G * F;
+	//	float denominator = 4.0f * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
 
-		vec3 specular = numerator / denominator;
+	//	vec3 specular = numerator / denominator;
 
-		vec3 KS = F;        //反射系数
-		vec3 KD = 1.0 - KS; //折射系数
+	//	vec3 KS = F;        //反射系数
+	//	vec3 KD = 1.0 - KS; //折射系数
 
-		KD *= (1.0f - metallic); //对于金属没有漫反射
+	//	KD *= (1.0f - metallic); //对于金属没有漫反射
 
-		float NdotL = max(dot(N, L), 0.0);
+	//	float NdotL = max(dot(N, L), 0.0);
 
-		Lo += (KD * albedo / PI + specular) * radiance * NdotL;
+	//	Lo += (KD * albedo / PI + specular) * radiance * NdotL;
 
-	}
+	//}
 	//vec3 ambient = vec3(0.03, 0.03, 0.03) * ao * albedo;
 
 	vec3 irradiance = cubemap_sampling(N, payload.iblmap->irradiance_map);
@@ -190,7 +194,7 @@ vec3 PBRShader::fragment_shader(PixelAttri& pixelAttri)
 	prefilter_color = pow_vec3(prefilter_color, 2.2);
 	specular = cwise_product(prefilter_color, specular); 
 
-	vec3 color = diffuse + specular + Lo;
+	vec3 color = emit + diffuse + specular + Lo;
 
 
 	color = color / (color + 1.0);  //色调映射

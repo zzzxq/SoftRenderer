@@ -13,9 +13,9 @@
 //const vec3 Eye(3.f, 2.6f, 4.f);
 //const vec3 Up(0, 1, 0);
 //const vec3 Target(0, 0, 0);
-const vec3 Eye(0, 1, 22);
+const vec3 Eye(0, 5, 16);
 const vec3 Up(0, 1, 0);
-const vec3 Target(0, 0, -4);
+const vec3 Target(0, 0, -2);
 
 const vec3 ligthPos(3.f, 2.6f, 4.f);
 
@@ -31,6 +31,7 @@ const scene_t Scenes[] = {
 	{"sphere", build_sphere_scene},
 	{"IBL_sphere", build_IBL_sphere_scene},
 	{"gun", build_gun_scene},
+	{"helmet", build_helmet_scene}
 };
 
 
@@ -95,8 +96,8 @@ int main() {
 	int num_frames = 0;
 	float print_time = platform_get_time();
 
-	int nrRows = 7;
-	int nrColumns = 7;
+	int nrRows = 1;
+	int nrColumns = 5;
 	float spacing = 2.5;
 
 
@@ -119,24 +120,15 @@ int main() {
 					-2.0f);
 				update_matrix(camera, model_mat, view_mat, perspective_mat, shader_model, shader_skybox);
 
-				for (int m = 0; m < 1; m++) {
-					shader_model->payload.model = model[m];
-					shader_model->payload.model->metallic_s = (float)row / (float)nrRows;
-					shader_model->payload.model->roughness_s = float_clamp((float)col / (float)nrColumns, 0.05f, 1.0f);
+				
+				shader_model->payload.model = model[col];
+				/*shader_model->payload.model->metallic_s = (float)row / (float)nrRows;
+				shader_model->payload.model->roughness_s = float_clamp((float)col / (float)nrColumns, 0.05f, 1.0f);*/
 
-					if (shader_skybox != NULL) shader_skybox->payload.model = model[m];
-					IShader* shader;
-					if (model[m]->is_skybox)
-						shader = shader_skybox;
-					else
-						shader = shader_model;
+				IShader* shader = shader_model;
 
-					for (int i = 0; i < model[m]->nfaces(); i++) {
-						draw_triangles(framebuffer, zbuffer, *shader, i);
-
-						//draw_triangles_with_shadows(framebuffer, zbuffer, sbuffer,  *shader, i, lightSpaceMatrix, light_view_mat, 0.1, 100);
-					}
-
+				for (int i = 0; i < model[col]->nfaces(); i++) {
+					draw_triangles(framebuffer, zbuffer, *shader, i);
 				}
 
 			}
@@ -144,7 +136,7 @@ int main() {
 		model_mat = mat4::identity();
 		update_matrix(camera, model_mat, view_mat, perspective_mat, shader_model, shader_skybox);
 
-		for (int m = 1; m < model_num; m++) {
+		for (int m = nrColumns; m < model_num; m++) {
 			shader_skybox->payload.model = model[m];
 			IShader* shader = shader_skybox;
 			
