@@ -1,5 +1,5 @@
 ---
-typora-root-url: image
+
 ---
 
 #  SRender
@@ -8,19 +8,23 @@ typora-root-url: image
 
 ### Blinn-Phong Shading
 
-![yayi](/yayi.png)
+<img src="image/yayi.png" width="480">
+
+
 
 ### ShadowMap
 
-![pcf](/pcf.png)
+<img src="image/pcf.png" width="860">
 
 ### Image_based_lighting
 
-![material_ball](/material_ball.png)
+<img src="image/material_ball.png" width="860">
 
-![helmet](/helmet.png)
+<img src="image/helmet.png" width="860">
 
-![gun](/gun.png)
+<img src="image/gun.png" width="860">
+
+
 
 ## Main Features
 
@@ -38,7 +42,7 @@ typora-root-url: image
 
 * Image based lighting
 
-* Image-based lighting (IBL)
+  
 
   
 
